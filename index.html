@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="light only">
+<meta name="theme-color" content="#003087">
+<title>ASUS-UHNM Calculator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+
+  :root {
+    --nhs-blue: #005EB8;
+    --nhs-dark: #003087;
+    --nhs-light: #41B6E6;
+    --bg: #F0F4F5;
+    --card: #FFFFFF;
+    --text: #1A1A2E;
+    --muted: #5A6B7B;
+    --border: #D8DDE0;
+    --p1-red: #DA291C;
+    --p2-amber: #E68A00;
+    --p3-green: #009639;
+    --override-purple: #7B2D8E;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,48,135,0.08), 0 4px 12px rgba(0,48,135,0.04);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* ===== AGGRESSIVE LIGHT-MODE LOCK ===== */
+  /* Some mobile browsers (Android Chrome force dark, iOS smart invert) ignore
+     color-scheme meta hints. These rules use hardcoded values + !important
+     and explicitly override prefers-color-scheme: dark to enforce light mode. */
+  html, body {
+    background-color: #F0F4F5 !important;
+    color: #1A1A2E !important;
+    color-scheme: light only !important;
+    forced-color-adjust: none;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    html, body {
+      background-color: #F0F4F5 !important;
+      color: #1A1A2E !important;
+    }
+  }
+
+  body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile */
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    background: linear-gradient(135deg, var(--nhs-dark) 0%, var(--nhs-blue) 100%);
+    color: white;
+    padding: 20px 16px 16px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,48,135,0.25);
+  }
+  .header-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 2px; }
+  .header p { font-size: 12px; opacity: 0.8; font-weight: 400; }
+
+  .container { max-width: 640px; margin: 0 auto; padding: 12px 12px 160px; }
+
+  /* ===== SETUP BANNER ===== */
+  .setup-banner {
+    background: linear-gradient(135deg, #FFF8ED, #FFF3E0);
+    border: 1.5px solid #FFD180;
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .setup-banner.show { display: block; }
+  .setup-banner h3 { font-size: 14px; font-weight: 700; color: #E65100; margin-bottom: 4px; }
+  .setup-banner p { font-size: 12px; color: #BF360C; line-height: 1.4; }
+  .setup-banner code {
+    display: block;
+    background: rgba(0,0,0,0.06);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-top: 8px;
+    font-size: 11px;
+    word-break: break-all;
+    font-family: 'Consolas', 'Courier New', monospace;
+    color: #4E342E;
+  }
+  .setup-banner .btn-sm {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 6px 14px;
+    background: #E65100;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ===== PATIENT INFO ===== */
+  .patient-bar {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 10px;
+  }
+  .patient-bar .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0; /* Critical: prevents grid blowout from input content */
+  }
+  .patient-bar .field.full { grid-column: 1 / -1; }
+  .patient-bar label {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .patient-bar input {
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 9px 10px;
+    font-size: 14px; font-family: inherit; background: var(--bg);
+    color: var(--text); outline: none; transition: border-color 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .patient-bar input[type="datetime-local"] {
+    font-size: 13px; /* Slightly smaller so the native picker UI fits comfortably */
+  }
+  .patient-bar input:focus { border-color: var(--nhs-blue); box-shadow: 0 0 0 2px rgba(0,94,184,0.15); }
+
+  /* On narrow mobile viewports, switch to single column */
+  @media (max-width: 420px) {
+    .patient-bar {
+      grid-template-columns: 1fr;
+      padding: 10px 12px;
+    }
+    .patient-bar .field.full {
+      grid-column: 1;
+    }
+  }
+
+  /* ===== SECTIONS ===== */
+  .section {
+    background: var(--card); border-radius: var(--radius);
+    margin-bottom: 10px; box-shadow: var(--shadow); overflow: hidden;
+  }
+  .section-header {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+    cursor: pointer; user-select: none;
+    border-bottom: 1px solid transparent; transition: background 0.15s;
+  }
+  .section-header:hover { background: rgba(0,94,184,0.03); }
+  .section.open .section-header { border-bottom-color: var(--border); }
+  .section-num {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--nhs-blue);
+    color: white; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .section-num.done { background: var(--p3-green); }
+  .section-title { font-size: 14px; font-weight: 600; flex: 1; }
+  .section-score {
+    font-size: 13px; font-weight: 700; color: var(--nhs-blue);
+    background: rgba(0,94,184,0.08); padding: 2px 10px; border-radius: 20px;
+    min-width: 24px; text-align: center;
+  }
+  .section-chevron {
+    width: 20px; height: 20px; transition: transform 0.2s; color: var(--muted);
+  }
+  .section.open .section-chevron { transform: rotate(180deg); }
+  .section-body { display: none; padding: 10px 14px 14px; }
+  .section.open .section-body { display: block; }
+
+  /* ===== RADIO OPTIONS ===== */
+  .option-group { display: flex; flex-direction: column; gap: 6px; }
+  .option {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+    cursor: pointer; transition: all 0.15s; position: relative;
+  }
+  .option:hover { border-color: var(--nhs-light); background: rgba(65,182,230,0.04); }
+  .option.selected { border-color: var(--nhs-blue); background: rgba(0,94,184,0.05); }
+  .option.override-yes:hover { border-color: var(--p1-red); background: rgba(218,41,28,0.04); }
+  .option.override-yes.selected { border-color: var(--p1-red); background: rgba(218,41,28,0.08); }
+  .option.override-yes.selected .radio-dot { border-color: var(--p1-red); background: var(--p1-red); }
+  .option input { display: none; }
+  .radio-dot {
+    width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; margin-top: 1px;
+  }
+  .option.selected .radio-dot { border-color: var(--nhs-blue); background: var(--nhs-blue); }
+  .radio-dot::after {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: white; opacity: 0; transition: opacity 0.15s;
+  }
+  .option.selected .radio-dot::after { opacity: 1; }
+  .option-content { flex: 1; }
+  .option-label { font-size: 14px; font-weight: 500; }
+  .option-detail { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .option-points {
+    font-size: 12px; font-weight: 700; color: var(--nhs-blue);
+    background: rgba(0,94,184,0.08); padding: 1px 8px; border-radius: 12px;
+    white-space: nowrap; align-self: center;
+  }
+
+  /* ===== CHECKBOX OPTIONS ===== */
+  .checkbox-group { display: flex; flex-direction: column; gap: 6px; }
+  .checkbox-option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .checkbox-option:hover { border-color: var(--nhs-light); }
+  .checkbox-option.checked { border-color: var(--nhs-blue); background: rgba(0,94,184,0.05); }
+  .checkbox-option input { display: none; }
+  .check-box {
+    width: 20px; height: 20px; border-radius: 5px; border: 2px solid var(--border);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .checkbox-option.checked .check-box { border-color: var(--nhs-blue); background: var(--nhs-blue); }
+  .check-box svg { width: 12px; height: 12px; opacity: 0; transition: opacity 0.15s; }
+  .checkbox-option.checked .check-box svg { opacity: 1; }
+  .checkbox-label { font-size: 14px; font-weight: 500; flex: 1; }
+
+  .sub-label {
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin: 10px 0 6px;
+  }
+  .sub-label:first-child { margin-top: 0; }
+
+  .rf-hint {
+    font-size: 12px; color: var(--muted); margin-bottom: 8px;
+    padding: 6px 10px; background: rgba(0,94,184,0.04); border-radius: 6px;
+  }
+  .rf-hint strong { color: var(--text); }
+
+  /* ===== RESULT PANEL ===== */
+  .result-panel {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+    padding: 0 12px 12px; pointer-events: none;
+  }
+  .result-inner {
+    max-width: 640px; margin: 0 auto; border-radius: 14px; padding: 12px 16px;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05);
+    pointer-events: all; transition: background 0.3s, color 0.3s;
+  }
+  .result-top { display: flex; align-items: center; gap: 14px; }
+  .result-inner.p1 { background: var(--p1-red); color: white; }
+  .result-inner.p2 { background: linear-gradient(135deg, #E68A00, #D47B00); color: white; }
+  .result-inner.p3 { background: var(--p3-green); color: white; }
+  .result-inner.override { background: var(--p1-red); color: white; animation: pulse-border 1.5s infinite; }
+  .result-inner.none { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+
+  @keyframes pulse-border {
+    0%, 100% { box-shadow: 0 -4px 24px rgba(218,41,28,0.3), 0 0 0 2px rgba(218,41,28,0.5); }
+    50% { box-shadow: 0 -4px 24px rgba(218,41,28,0.5), 0 0 0 4px rgba(218,41,28,0.3); }
+  }
+
+  .result-score { font-size: 32px; font-weight: 700; line-height: 1; min-width: 48px; text-align: center; }
+  .result-info { flex: 1; }
+  .result-priority { font-size: 14px; font-weight: 700; letter-spacing: 0.3px; }
+  .result-desc { font-size: 12px; opacity: 0.9; }
+  .result-override { font-size: 11px; font-weight: 600; opacity: 0.85; margin-top: 2px; }
+  .result-override svg { width: 12px; height: 12px; vertical-align: -2px; margin-right: 2px; }
+
+  /* Submit row inside result bar */
+  .result-actions {
+    display: flex; gap: 8px; margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+  }
+  .result-inner.none .result-actions { border-top-color: var(--border); }
+  .result-actions .btn-result {
+    flex: 1; padding: 10px; border: none; border-radius: 8px;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;
+    transition: all 0.15s;
+  }
+  .btn-result svg { width: 15px; height: 15px; }
+  .btn-submit-log {
+    background: rgba(255,255,255,0.95); color: var(--nhs-dark);
+  }
+  .btn-submit-log:hover { background: white; }
+  .result-inner.none .btn-submit-log {
+    background: var(--nhs-blue); color: white;
+  }
+  .btn-copy-result {
+    background: rgba(255,255,255,0.2); color: white;
+  }
+  .btn-copy-result:hover { background: rgba(255,255,255,0.3); }
+  .result-inner.none .btn-copy-result {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  }
+  .btn-reset-result {
+    background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.9);
+    min-width: 44px; max-width: 44px;
+  }
+  .btn-reset-result:hover { background: rgba(255,255,255,0.25); }
+  .result-inner.none .btn-reset-result {
+    background: rgba(218,41,28,0.08); color: var(--p1-red);
+  }
+
+  /* ===== CONFIG MODAL ===== */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 500; align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: white; border-radius: 16px 16px 0 0; padding: 20px 16px 32px;
+    width: 100%; max-width: 640px; max-height: 80vh; overflow-y: auto;
+  }
+  .modal h2 { font-size: 18px; font-weight: 700; color: var(--nhs-dark); margin-bottom: 4px; }
+  .modal p { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+  .modal label { font-size: 12px; font-weight: 600; color: var(--text); display: block; margin-bottom: 4px; }
+  .modal input[type="url"], .modal input[type="text"] {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 14px; font-family: inherit;
+    margin-bottom: 12px; outline: none;
+  }
+  .modal input:focus { border-color: var(--nhs-blue); }
+  .modal .btn-save {
+    width: 100%; padding: 14px; background: var(--nhs-blue); color: white;
+    border: none; border-radius: 8px; font-family: inherit; font-size: 15px;
+    font-weight: 600; cursor: pointer;
+  }
+  .modal .btn-save:hover { background: var(--nhs-dark); }
+  .modal .btn-cancel {
+    width: 100%; padding: 12px; background: transparent; color: var(--muted);
+    border: none; font-family: inherit; font-size: 14px; cursor: pointer; margin-top: 8px;
+  }
+  .modal .helper-text {
+    font-size: 11px; color: var(--muted); margin-top: -8px; margin-bottom: 12px; line-height: 1.4;
+  }
+
+  /* ===== SETTINGS GEAR ===== */
+  .settings-btn {
+    position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 8px;
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: white; transition: background 0.15s;
+  }
+  .settings-btn:hover { background: rgba(255,255,255,0.25); }
+  .settings-btn svg { width: 18px; height: 18px; }
+  .header { position: sticky; top: 0; z-index: 100; }
+  .header-wrap { position: relative; }
+
+  /* ===== SUCCESS TOAST ===== */
+  .toast {
+    position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+    background: var(--p3-green); color: white; padding: 10px 20px;
+    border-radius: 10px; font-size: 14px; font-weight: 600;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 600;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  @media print {
+    .header { position: static; }
+    .result-panel { position: static; padding: 0; margin-top: 16px; }
+    .result-inner { box-shadow: none !important; border: 2px solid #333 !important; animation: none !important; }
+    .section { break-inside: avoid; }
+    .section-body { display: block !important; }
+    .result-actions, .settings-btn, .setup-banner { display: none !important; }
+  }
+
+  @media (max-width: 420px) {
+    .container { padding: 10px 10px 160px; }
+    .section-title { font-size: 13.5px; }
+    .option-label { font-size: 13.5px; }
+    .option-detail { font-size: 11.5px; }
+    .checkbox-label { font-size: 13.5px; }
+  }
+
+  @media (max-width: 380px) {
+    .header h1 { font-size: 17px; }
+    .header p { font-size: 11px; }
+    .option-label { font-size: 13px; }
+    .result-score { font-size: 28px; }
+    .result-priority { font-size: 13px; }
+    .result-desc { font-size: 11px; }
+    .result-actions .btn-result { font-size: 12px; padding: 9px 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-wrap">
+    <div class="header-badge">NHS &bull; UHNM Pilot Study</div>
+    <h1>ASUS-UHNM Calculator</h1>
+    <p>A&E to Surgical Urgency Score &mdash; Acute General Surgery Triage</p>
+    <div class="settings-btn" onclick="openConfig()" title="Configure Forms link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Setup banner (only shows if no Forms URL configured) -->
+  <div class="setup-banner show" id="setupBanner">
+    <h3>&#9881; Setup needed before deployment</h3>
+    <p>To enable Submit &amp; Log, set <code style="background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:3px;font-size:11px;">DEFAULT_FORMS_URL</code> at the top of the script (recommended for permanent deployment), or tap the gear icon to configure this device only.</p>
+  </div>
+
+  <!-- Patient info -->
+  <div class="patient-bar">
+    <div class="field"><label>Hospital No.</label><input type="text" id="ptHosp" placeholder="e.g. 12345678" autocomplete="off"></div>
+    <div class="field"><label>Clinician Initials</label><input type="text" id="ptClinician" placeholder="e.g. SA" autocomplete="off"></div>
+    <div class="field full"><label>Referral Date / Time (auto)</label><input type="datetime-local" id="ptDateTime" autocomplete="off"></div>
+  </div>
+
+  <!-- Section 1: NEWS2 -->
+  <div class="section open" data-section="news2">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-num" id="num-news2">1</div>
+      <div class="section-title">Physiological Instability (NEWS2)</div>
+      <div class="section-score" id="score-news2">&mdash;</div>
+      <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="section-body">
+      <div class="option-group" data-group="news2">
+        <label class="option" onclick="selectOption(this,'news2',0,'NEWS2 0-4')">
+          <input type="radio" name="news2"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">NEWS2 0&ndash;4</span></span>
+          <span class="option-points">0</span>
+        </label>
+        <label class="option" onclick="selectOption(this,'news2',3,'NEWS2 5-6')">
+          <input type="radio" name="news2"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">NEWS2 5&ndash;6</span></span>
+          <span class="option-points">+3</span>
+        </label>
+        <label class="option" onclick="selectOption(this,'news2',6,'NEWS2 >=7')">
+          <input type="radio" name="news2"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">NEWS2 &ge; 7</span></span>
+          <span class="option-points">+6</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Pain & Peritonism -->
+  <div class="section" data-section="pain">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-num" id="num-pain">2</div>
+      <div class="section-title">Pain &amp; Peritonism</div>
+      <div class="section-score" id="score-pain">&mdash;</div>
+      <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="section-body">
+      <div class="option-group" data-group="pain">
+        <label class="option" onclick="selectOption(this,'pain',0,'Mild/moderate pain')">
+          <input type="radio" name="pain"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">Mild / moderate pain</span></span>
+          <span class="option-points">0</span>
+        </label>
+        <label class="option" onclick="selectOption(this,'pain',2,'Severe pain requiring opiates')">
+          <input type="radio" name="pain"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">Severe pain requiring opiates</span></span>
+          <span class="option-points">+2</span>
+        </label>
+        <label class="option" onclick="selectOption(this,'pain',6,'Peritonism')">
+          <input type="radio" name="pain"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">Peritonism</span><span class="option-detail">Rigidity, rebound, guarding</span></span>
+          <span class="option-points">+6</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: GI Red Flags -->
+  <div class="section" data-section="redflags">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-num" id="num-redflags">3</div>
+      <div class="section-title">GI Red Flags</div>
+      <div class="section-score" id="score-redflags">&mdash;</div>
+      <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="section-body">
+      <div class="rf-hint">Scoring: <strong>None = 0</strong> &nbsp;|&nbsp; <strong>One = +2</strong> &nbsp;|&nbsp; <strong>Two or more = +5</strong></div>
+      <div class="checkbox-group" data-group="redflags" id="rfGroup">
+        <div class="checkbox-option" onclick="toggleCheck(this)" data-rf="Fresh PR bleeding with instability" role="checkbox" tabindex="0" aria-checked="false">
+          <span class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+          <span class="checkbox-label">Fresh PR bleeding with instability</span>
+        </div>
+        <div class="checkbox-option" onclick="toggleCheck(this)" data-rf="Bilious or faeculent vomiting" role="checkbox" tabindex="0" aria-checked="false">
+          <span class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+          <span class="checkbox-label">Bilious or faeculent vomiting</span>
+        </div>
+        <div class="checkbox-option" onclick="toggleCheck(this)" data-rf="Suspected bowel obstruction" role="checkbox" tabindex="0" aria-checked="false">
+          <span class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+          <span class="checkbox-label">Suspected bowel obstruction</span>
+        </div>
+        <div class="checkbox-option" onclick="toggleCheck(this)" data-rf="Suspected bowel ischaemia" role="checkbox" tabindex="0" aria-checked="false">
+          <span class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+          <span class="checkbox-label">Suspected bowel ischaemia</span>
+        </div>
+        <div class="checkbox-option" onclick="toggleCheck(this)" data-rf="Strangulated abdominal wall hernia" role="checkbox" tabindex="0" aria-checked="false">
+          <span class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+          <span class="checkbox-label">Strangulated abdominal wall hernia</span>
+        </div>
+        <div class="checkbox-option" onclick="toggleCheck(this)" data-rf="Severe sepsis of abdominal origin" role="checkbox" tabindex="0" aria-checked="false">
+          <span class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+          <span class="checkbox-label">Severe sepsis of abdominal origin</span>
+        </div>
+        <div class="checkbox-option" onclick="toggleCheck(this)" data-rf="Severe pancreatitis with organ dysfunction" role="checkbox" tabindex="0" aria-checked="false">
+          <span class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+          <span class="checkbox-label">Severe pancreatitis with organ dysfunction</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: Blood Tests -->
+  <div class="section" data-section="bloods">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-num" id="num-bloods">4</div>
+      <div class="section-title">Blood Test Abnormalities</div>
+      <div class="section-score" id="score-bloods">&mdash;</div>
+      <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="section-body">
+      <div class="option-group" data-group="bloods">
+        <label class="option" onclick="selectOption(this,'bloods',0,'Mild/normal')">
+          <input type="radio" name="bloods"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">Mild / Normal</span></span>
+          <span class="option-points">0</span>
+        </label>
+        <label class="option" onclick="selectOption(this,'bloods',2,'Moderate derangement')">
+          <input type="radio" name="bloods"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">Moderate derangement</span><span class="option-detail">CRP 100&ndash;150, WCC 12&ndash;15, lactate 2&ndash;4, AKI 1</span></span>
+          <span class="option-points">+2</span>
+        </label>
+        <label class="option" onclick="selectOption(this,'bloods',5,'Severe derangement')">
+          <input type="radio" name="bloods"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">Severe derangement</span><span class="option-detail">CRP &gt;150, WCC &gt;15, lactate &gt;4, metabolic acidosis, AKI &ge;2, Hb drop &gt;20 g/L</span></span>
+          <span class="option-points">+5</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5: Imaging -->
+  <div class="section" data-section="imaging">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-num" id="num-imaging">5</div>
+      <div class="section-title">Imaging Findings</div>
+      <div class="section-score" id="score-imaging">&mdash;</div>
+      <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="section-body">
+      <div class="option-group" data-group="imaging">
+        <div class="sub-label">Definite Surgical Pathology (+8)</div>
+        <label class="option" onclick="selectOption(this,'imaging',8,'Definite surgical pathology','definite')">
+          <input type="radio" name="imaging"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">Definite surgical pathology</span><span class="option-detail">Free air, perforation, closed-loop obstruction, transition point, bowel ischaemia, abscess &gt;3cm, volvulus, strangulated hernia, perforated appendicitis/diverticulitis, severe pancreatitis with necrosis, ischaemic colitis with systemic compromise</span></span>
+          <span class="option-points">+8</span>
+        </label>
+        <div class="sub-label">Minor Surgical Pathology (+3)</div>
+        <label class="option" onclick="selectOption(this,'imaging',3,'Minor/possible surgical pathology','minor')">
+          <input type="radio" name="imaging"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">Minor / possible surgical pathology</span><span class="option-detail">Early appendicitis, early cholecystitis, uncomplicated diverticulitis, mild SBO without transition, localised free fluid, fat stranding, abscess &lt;3cm, mild pancreatitis</span></span>
+          <span class="option-points">+3</span>
+        </label>
+        <div class="sub-label">Medical Pathology (&minus;3)</div>
+        <label class="option" onclick="selectOption(this,'imaging',-3,'Medical pathology/normal','medical')">
+          <input type="radio" name="imaging"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">Medical pathology / normal</span><span class="option-detail">Infective colitis, IBD flare, gastroenteritis, uncomplicated gallstones, constipation without obstruction, UTI/pyelonephritis, pneumonia causing abdominal pain</span></span>
+          <span class="option-points">&minus;3</span>
+        </label>
+        <div class="sub-label">Imaging Not Yet Available</div>
+        <label class="option" onclick="selectOption(this,'imaging',0,'Imaging pending/not done','pending')">
+          <input type="radio" name="imaging"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">Imaging pending / not done</span></span>
+          <span class="option-points">0</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 6: Frailty -->
+  <div class="section" data-section="frailty">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-num" id="num-frailty">6</div>
+      <div class="section-title">Frailty (CFS)</div>
+      <div class="section-score" id="score-frailty">&mdash;</div>
+      <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="section-body">
+      <div class="option-group" data-group="frailty">
+        <label class="option" onclick="selectOption(this,'frailty',0,'CFS 1-3')">
+          <input type="radio" name="frailty"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">CFS 1&ndash;3</span></span>
+          <span class="option-points">0</span>
+        </label>
+        <label class="option" onclick="selectOption(this,'frailty',1,'CFS 4-5')">
+          <input type="radio" name="frailty"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">CFS 4&ndash;5</span></span>
+          <span class="option-points">+1</span>
+        </label>
+        <label class="option" onclick="selectOption(this,'frailty',2,'CFS >=6')">
+          <input type="radio" name="frailty"><span class="radio-dot"></span>
+          <span class="option-content"><span class="option-label">CFS &ge; 6</span></span>
+          <span class="option-points">+2</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 7: Clinician Override -->
+  <div class="section" data-section="override">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-num" id="num-override" style="background:var(--override-purple);">!</div>
+      <div class="section-title">Clinician Concern Override</div>
+      <div class="section-score" id="score-override" style="background:rgba(123,45,142,0.08);color:var(--override-purple);">&mdash;</div>
+      <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="section-body">
+      <div style="font-size:13px;color:var(--text);margin-bottom:10px;padding:0 2px;line-height:1.4;">
+        <strong>&ldquo;Are you worried about this patient?&rdquo;</strong>
+      </div>
+      <div class="option-group" data-group="override">
+        <label class="option override-yes" onclick="selectOption(this,'override',true,'Yes - clinician concern')">
+          <input type="radio" name="override"><span class="radio-dot"></span>
+          <span class="option-content">
+            <span class="option-label">Yes</span>
+            <span class="option-detail">Triggers mandatory P1 IMMEDIATE regardless of score</span>
+          </span>
+          <span class="option-points" style="color:var(--p1-red);background:rgba(218,41,28,0.1);">P1</span>
+        </label>
+        <label class="option" onclick="selectOption(this,'override',false,'No')">
+          <input type="radio" name="override"><span class="radio-dot"></span>
+          <span class="option-content">
+            <span class="option-label">No</span>
+            <span class="option-detail">Score determined by inputs above</span>
+          </span>
+          <span class="option-points">&mdash;</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== RESULT PANEL ===== -->
+<div class="result-panel">
+  <div class="result-inner none" id="resultBar">
+    <div class="result-top">
+      <div class="result-score" id="resultScore">&mdash;</div>
+      <div class="result-info">
+        <div class="result-priority" id="resultPriority">Complete all sections</div>
+        <div class="result-desc" id="resultDesc">Score will appear here</div>
+        <div class="result-override" id="resultOverride" style="display:none;"></div>
+      </div>
+    </div>
+    <div class="result-actions">
+      <button class="btn-result btn-submit-log" id="btnSubmit" onclick="submitToForms()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        Submit &amp; Log
+      </button>
+      <button class="btn-result btn-copy-result" onclick="copyResult()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Copy
+      </button>
+      <button class="btn-result btn-reset-result" onclick="resetForm()" title="Reset">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CONFIG MODAL ===== -->
+<div class="modal-overlay" id="configModal">
+  <div class="modal">
+    <h2>Configure Forms Link</h2>
+    <p>Paste the Microsoft Forms URL below to enable Submit &amp; Log on this device only. For permanent deployment, set the URL once in the HTML source code (see DEFAULT_FORMS_URL near the top of the script).</p>
+
+    <label>Microsoft Forms URL</label>
+    <input type="url" id="cfgFormsUrl" placeholder="https://forms.office.com/r/XXXXXXX">
+    <div class="helper-text">In Forms, click <strong>Send</strong> &rarr; copy the short URL. This will be saved in this browser only.</div>
+
+    <button class="btn-save" onclick="saveConfig()">Save Configuration</button>
+    <button class="btn-cancel" onclick="closeConfig()">Cancel</button>
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"></div>
+
+<script>
+// =============================================
+// STATE
+// =============================================
+const state = {
+  news2: null, news2Label: null,
+  pain: null, painLabel: null,
+  bloods: null, bloodsLabel: null,
+  imaging: null, imagingLabel: null, imagingType: null,
+  frailty: null, frailtyLabel: null,
+  redflags: 0, redflagLabels: [],
+  override: null, overrideLabel: null
+};
+
+// =============================================
+// PRODUCTION CONFIGURATION
+// =============================================
+// Before deploying to A&E staff, paste your live Microsoft Forms URL here.
+// When this is set, end users will never see the setup banner — the calculator
+// is ready to use immediately. Leave empty if you want each device to be
+// configured individually via the gear icon.
+//
+// Example: const DEFAULT_FORMS_URL = 'https://forms.office.com/r/XXXXXXX';
+const DEFAULT_FORMS_URL = '';
+
+// Config (persisted in localStorage, falls back to DEFAULT_FORMS_URL above)
+let config = {
+  formsUrl: DEFAULT_FORMS_URL
+};
+
+// Load saved config (localStorage overrides DEFAULT_FORMS_URL if set)
+try {
+  const saved = localStorage.getItem('asus_config');
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    if (parsed.formsUrl) config.formsUrl = parsed.formsUrl;
+  }
+} catch(e) {}
+
+// Hide setup banner if we have a URL from either source
+if (config.formsUrl) {
+  document.getElementById('setupBanner').classList.remove('show');
+}
+
+// =============================================
+// SECTION TOGGLE
+// =============================================
+function toggleSection(header) {
+  header.closest('.section').classList.toggle('open');
+}
+
+// =============================================
+// SELECT RADIO
+// =============================================
+function selectOption(el, group, value, label, subtype) {
+  const parent = el.closest('.section-body');
+  parent.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  state[group] = value;
+  state[group + 'Label'] = label;
+  if (group === 'imaging') state.imagingType = subtype;
+
+  // Mark section as done
+  const numEl = document.getElementById('num-' + group);
+  if (numEl) numEl.classList.add('done');
+
+  updateScores();
+
+  // Auto-advance: collapse current section and open next, but don't auto-scroll.
+  // Scrolling the user's view automatically on mobile feels jarring; the user
+  // can swipe naturally to see the next section. The result bar is always
+  // visible at the bottom anyway (it's sticky).
+  const section = el.closest('.section');
+  const next = section.nextElementSibling;
+  if (next && next.classList.contains('section')) {
+    setTimeout(() => {
+      section.classList.remove('open');
+      next.classList.add('open');
+    }, 250);
+  } else {
+    // Last section - just close it. Result is already visible in sticky bar.
+    setTimeout(() => {
+      section.classList.remove('open');
+    }, 250);
+  }
+}
+
+// =============================================
+// TOGGLE CHECKBOX
+// =============================================
+function toggleCheck(el) {
+  el.classList.toggle('checked');
+  el.setAttribute('aria-checked', el.classList.contains('checked') ? 'true' : 'false');
+  // Red flags only - override is now a radio handled by selectOption
+  const group = el.closest('.checkbox-group');
+  const checked = group.querySelectorAll('.checked');
+  state.redflags = checked.length;
+  state.redflagLabels = Array.from(checked).map(c => c.dataset.rf);
+  // Mark section done if user has interacted
+  const numEl = document.getElementById('num-redflags');
+  if (numEl) numEl.classList.add('done');
+  updateScores();
+}
+
+// Keyboard support for checkbox divs
+document.addEventListener('keydown', function(e) {
+  if ((e.key === ' ' || e.key === 'Enter') && e.target.classList.contains('checkbox-option')) {
+    e.preventDefault();
+    toggleCheck(e.target);
+  }
+});
+
+// =============================================
+// UPDATE SCORES
+// =============================================
+function updateScores() {
+  const sections = ['news2','pain','bloods','imaging','frailty'];
+  sections.forEach(s => {
+    const el = document.getElementById('score-' + s);
+    if (state[s] !== null) {
+      const v = state[s];
+      el.textContent = (v >= 0 ? '+' : '') + v;
+    } else {
+      el.textContent = '\u2014';
+    }
+  });
+
+  // Red flags
+  let rfScore = 0;
+  if (state.redflags === 1) rfScore = 2;
+  else if (state.redflags >= 2) rfScore = 5;
+  const rfEl = document.getElementById('score-redflags');
+  rfEl.textContent = state.redflags > 0 ? '+' + rfScore : '0';
+
+  // Override badge
+  const overScoreEl = document.getElementById('score-override');
+  if (state.override === true) {
+    overScoreEl.textContent = 'YES';
+    overScoreEl.style.background = 'rgba(218,41,28,0.12)';
+    overScoreEl.style.color = 'var(--p1-red)';
+  } else if (state.override === false) {
+    overScoreEl.textContent = 'NO';
+    overScoreEl.style.background = 'rgba(0,150,57,0.1)';
+    overScoreEl.style.color = 'var(--p3-green)';
+  } else {
+    overScoreEl.textContent = '\u2014';
+    overScoreEl.style.background = 'rgba(123,45,142,0.08)';
+    overScoreEl.style.color = 'var(--override-purple)';
+  }
+
+  // Total - all 5 main sections + override must be answered
+  const vals = [state.news2, state.pain, state.bloods, state.imaging, state.frailty];
+  const allFilled = vals.every(v => v !== null);
+  const overrideAnswered = state.override !== null;
+
+  const bar = document.getElementById('resultBar');
+  const scoreEl = document.getElementById('resultScore');
+  const prioEl = document.getElementById('resultPriority');
+  const descEl = document.getElementById('resultDesc');
+  const overEl = document.getElementById('resultOverride');
+
+  if (!allFilled || !overrideAnswered) {
+    bar.className = 'result-inner none';
+    const filled = vals.filter(v => v !== null).length;
+    const remaining = [];
+    if (filled < 5) remaining.push(`${filled}/5 scoring sections`);
+    if (!overrideAnswered) remaining.push('clinician concern (Yes/No)');
+    scoreEl.textContent = '\u2014';
+    prioEl.textContent = `Incomplete`;
+    descEl.textContent = `Awaiting: ${remaining.join(' + ')}`;
+    overEl.style.display = 'none';
+    return;
+  }
+
+  const total = vals.reduce((a, b) => a + b, 0) + rfScore;
+  scoreEl.textContent = total;
+
+  // Override checks
+  let overrideReasons = [];
+  if (state.imagingType === 'definite') overrideReasons.push('Definite surgical pathology on imaging');
+  if (state.pain === 6 && state.bloods === 5) overrideReasons.push('Peritonism + severe blood derangement');
+  if (state.news2 === 6 && (state.redflags > 0 || state.bloods === 5)) overrideReasons.push('NEWS2 \u22657 + GI red flag/severe bloods');
+  if (state.override === true) overrideReasons.push('Clinician concern override');
+
+  const hasOverride = overrideReasons.length > 0;
+
+  if (hasOverride) {
+    bar.className = 'result-inner override';
+    prioEl.textContent = 'P1 \u2014 IMMEDIATE SURGICAL REVIEW';
+    descEl.textContent = 'Mandatory override triggered';
+    overEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg> ' + overrideReasons.join(' \u2022 ');
+    overEl.style.display = 'block';
+  } else if (total >= 13) {
+    bar.className = 'result-inner p1';
+    prioEl.textContent = 'P1 \u2014 IMMEDIATE SURGICAL REVIEW';
+    descEl.textContent = '';
+    overEl.style.display = 'none';
+  } else if (total >= 7) {
+    bar.className = 'result-inner p2';
+    prioEl.textContent = 'P2 \u2014 URGENT SURGICAL REVIEW';
+    descEl.textContent = '';
+    overEl.style.display = 'none';
+  } else {
+    bar.className = 'result-inner p3';
+    prioEl.textContent = 'P3 \u2014 ROUTINE SURGICAL REVIEW';
+    descEl.textContent = '';
+    overEl.style.display = 'none';
+  }
+}
+
+// =============================================
+// SUBMIT TO MICROSOFT FORMS (pre-filled link)
+// =============================================
+
+// Mapping from state values to exact Form option text.
+// These MUST match the Form options exactly for pre-fill to work.
+// If the Form is built from the v2.1 implementation guide, these are correct.
+const FORM_OPTIONS = {
+  news2: {
+    0: 'NEWS2 0\u20134',          // en-dash
+    3: 'NEWS2 5\u20136',
+    6: 'NEWS2 \u22657'             // ≥
+  },
+  pain: {
+    0: 'Mild / moderate pain',
+    2: 'Severe pain requiring opiates',
+    6: 'Peritonism (rigidity, rebound, guarding)'
+  },
+  bloods: {
+    0: 'Mild / Normal',
+    2: 'Moderate derangement (CRP 100\u2013150, WCC 12\u201315, lactate 2\u20134, AKI 1)',
+    5: 'Severe derangement (CRP >150, WCC >15, lactate >4, metabolic acidosis, AKI \u22652, Hb drop >20 g/L)'
+  },
+  imaging: {
+    'definite': 'Definite surgical pathology (free air, perforation, closed-loop, transition point, ischaemia, abscess >3cm, volvulus, strangulated hernia, perforated app/diverticulitis, pancreatitis with necrosis, ischaemic colitis with systemic compromise)',
+    'minor': 'Minor / possible surgical pathology (early appendicitis/cholecystitis, uncomplicated diverticulitis, mild SBO, localised free fluid, fat stranding, abscess <3cm, mild pancreatitis)',
+    'medical': 'Medical pathology / normal (infective colitis, IBD flare, gastroenteritis, uncomplicated gallstones, constipation, UTI/pyelonephritis, pneumonia)',
+    'pending': 'Imaging pending / not done'
+  },
+  frailty: {
+    0: 'CFS 1\u20133',
+    1: 'CFS 4\u20135',
+    2: 'CFS \u22656'
+  }
+};
+
+function submitToForms() {
+  if (!config.formsUrl) {
+    openConfig();
+    return;
+  }
+
+  const vals = [state.news2, state.pain, state.bloods, state.imaging, state.frailty];
+  if (!vals.every(v => v !== null) || state.override === null) {
+    showToast('Complete all sections first', '#E65100');
+    return;
+  }
+
+  // Get patient identifiers
+  const hospNo = document.getElementById('ptHosp').value.trim();
+  const clinician = document.getElementById('ptClinician').value.trim();
+  const dtRaw = document.getElementById('ptDateTime').value;
+
+  if (!hospNo || !clinician || !dtRaw) {
+    showToast('Fill in Hospital No, Clinician, and Date/Time', '#E65100');
+    return;
+  }
+
+  // Format the datetime as DD/MM/YYYY HH:MM for the Form free-text field
+  const dt = new Date(dtRaw);
+  const pad = n => String(n).padStart(2, '0');
+  const dtFormatted = `${pad(dt.getDate())}/${pad(dt.getMonth()+1)}/${dt.getFullYear()} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+
+  // Look up exact Form option text for each answer
+  const news2Form  = FORM_OPTIONS.news2[state.news2];
+  const painForm   = FORM_OPTIONS.pain[state.pain];
+  const bloodsForm = FORM_OPTIONS.bloods[state.bloods];
+  const imagingForm = FORM_OPTIONS.imaging[state.imagingType];
+  const frailtyForm = FORM_OPTIONS.frailty[state.frailty];
+  const overrideForm = state.override === true ? 'Yes' : 'No';
+
+  // Red flags: multi-select. Forms uses comma-separated values for pre-fill.
+  // If none selected, send "None" (matches the Form's first option).
+  const redflagsForm = state.redflagLabels.length > 0
+    ? state.redflagLabels.join(',')
+    : 'None';
+
+  // Build the parameters object: r1=hosp, r2=initials, r3=datetime, r4=NEWS2, ...
+  const params = {
+    r1: hospNo,
+    r2: clinician,
+    r3: dtFormatted,
+    r4: news2Form,
+    r5: painForm,
+    r6: redflagsForm,
+    r7: bloodsForm,
+    r8: imagingForm,
+    r9: frailtyForm,
+    r10: overrideForm
+  };
+
+  // Construct the pre-fill URL. Microsoft Forms accepts query parameters appended
+  // to either the short URL (forms.office.com/r/XXXXX) or the long URL
+  // (forms.office.com/Pages/ResponsePage.aspx?id=...).
+  const baseUrl = config.formsUrl.split('?')[0];          // strip any existing params
+  const existingParams = config.formsUrl.includes('?')
+    ? config.formsUrl.substring(config.formsUrl.indexOf('?') + 1).split('&').filter(p => !/^r\d+=/.test(p))
+    : [];
+  const newParams = Object.entries(params)
+    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`);
+  const allParams = [...existingParams, ...newParams].join('&');
+  const finalUrl = `${baseUrl}?${allParams}`;
+
+  // Show toast then open the form
+  showToast('Opening pre-filled form...', '#009639');
+  setTimeout(() => {
+    window.open(finalUrl, '_blank');
+  }, 300);
+}
+
+// =============================================
+// COPY RESULT
+// =============================================
+function copyResult() {
+  const hospNo = document.getElementById('ptHosp').value || 'N/A';
+  const clinician = document.getElementById('ptClinician').value || 'N/A';
+  const dtRaw = document.getElementById('ptDateTime').value;
+  let dtFormatted = 'N/A';
+  if (dtRaw) {
+    const dt = new Date(dtRaw);
+    const pad = n => String(n).padStart(2, '0');
+    dtFormatted = `${pad(dt.getDate())}/${pad(dt.getMonth()+1)}/${dt.getFullYear()} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+  }
+
+  let rfScore = 0;
+  if (state.redflags === 1) rfScore = 2;
+  else if (state.redflags >= 2) rfScore = 5;
+
+  const score = document.getElementById('resultScore').textContent;
+  const prioText = document.getElementById('resultPriority').textContent;
+  const overText = document.getElementById('resultOverride').textContent;
+
+  const summary = [
+    `ASUS-UHNM Score Summary`,
+    `========================`,
+    `Patient Hospital No: ${hospNo}`,
+    `Clinician: ${clinician}`,
+    `Date/Time: ${dtFormatted}`,
+    ``,
+    `NEWS2: ${state.news2Label || 'N/A'} (${state.news2 !== null ? state.news2 : '-'})`,
+    `Pain/Peritonism: ${state.painLabel || 'N/A'} (${state.pain !== null ? state.pain : '-'})`,
+    `GI Red Flags: ${state.redflagLabels.length ? state.redflagLabels.join('; ') : 'None'} (${rfScore})`,
+    `Blood Tests: ${state.bloodsLabel || 'N/A'} (${state.bloods !== null ? state.bloods : '-'})`,
+    `Imaging: ${state.imagingLabel || 'N/A'} (${state.imaging !== null ? state.imaging : '-'})`,
+    `Frailty: ${state.frailtyLabel || 'N/A'} (${state.frailty !== null ? state.frailty : '-'})`,
+    `Clinician Override: ${state.override === true ? 'Yes' : 'No'}`,
+    ``,
+    `TOTAL SCORE: ${score}`,
+    `PRIORITY: ${prioText}`,
+    overText ? `OVERRIDE: ${overText}` : '',
+  ].filter(Boolean).join('\n');
+
+  navigator.clipboard.writeText(summary).then(() => {
+    showToast('Copied to clipboard', '#009639');
+  });
+}
+
+// =============================================
+// RESET
+// =============================================
+function resetForm() {
+  if (!confirm('Clear all entries and start again?')) return;
+  state.news2 = null; state.news2Label = null;
+  state.pain = null; state.painLabel = null;
+  state.bloods = null; state.bloodsLabel = null;
+  state.imaging = null; state.imagingLabel = null; state.imagingType = null;
+  state.frailty = null; state.frailtyLabel = null;
+  state.redflags = 0; state.redflagLabels = [];
+  state.override = null; state.overrideLabel = null;
+
+  document.querySelectorAll('.option.selected').forEach(o => o.classList.remove('selected'));
+  document.querySelectorAll('.checkbox-option.checked').forEach(o => {
+    o.classList.remove('checked');
+    o.setAttribute('aria-checked', 'false');
+  });
+  document.querySelectorAll('.section-num.done').forEach(n => n.classList.remove('done'));
+  document.getElementById('ptHosp').value = '';
+  document.getElementById('ptClinician').value = '';
+  setCurrentDateTime();
+
+  document.querySelectorAll('.section').forEach((s, i) => {
+    if (i === 0) s.classList.add('open');
+    else s.classList.remove('open');
+  });
+  updateScores();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// =============================================
+// CONFIG MODAL
+// =============================================
+function openConfig() {
+  document.getElementById('cfgFormsUrl').value = config.formsUrl || '';
+  document.getElementById('configModal').classList.add('show');
+}
+
+function closeConfig() {
+  document.getElementById('configModal').classList.remove('show');
+}
+
+function saveConfig() {
+  config.formsUrl = document.getElementById('cfgFormsUrl').value.trim();
+
+  try { localStorage.setItem('asus_config', JSON.stringify(config)); } catch(e) {}
+
+  if (config.formsUrl) {
+    document.getElementById('setupBanner').classList.remove('show');
+    showToast('Forms link saved!', '#009639');
+  }
+  closeConfig();
+}
+
+// =============================================
+// TOAST
+// =============================================
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color || '#009639';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// =============================================
+// INIT
+// =============================================
+
+// Auto-populate the date/time field with current time
+function setCurrentDateTime() {
+  const now = new Date();
+  // Format for datetime-local input: YYYY-MM-DDTHH:MM (no seconds, local time)
+  const pad = n => String(n).padStart(2, '0');
+  const localISO = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  document.getElementById('ptDateTime').value = localISO;
+}
+setCurrentDateTime();
+
+updateScores();
+</script>
+</body>
+</html>
