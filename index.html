@@ -1008,18 +1008,21 @@ function submitToForms() {
     ? state.redflagLabels.join(',')
     : 'None';
 
-  // Build the parameters object: r1=hosp, r2=initials, r3=datetime, r4=NEWS2, ...
+  // Build the parameters object using the form's actual question IDs.
+  // These long hashed IDs are specific to THIS form. If you rebuild the form
+  // from scratch, regenerate them by submitting a test response and checking
+  // the Power Automate run history -> Get response details -> Outputs -> body.
   const params = {
-    r1: hospNo,
-    r2: clinician,
-    r3: dtFormatted,
-    r4: news2Form,
-    r5: painForm,
-    r6: redflagsForm,
-    r7: bloodsForm,
-    r8: imagingForm,
-    r9: frailtyForm,
-    r10: overrideForm
+    'rf877ce8da32a4ef585500b42fd56243c': hospNo,        // Q1 Hospital Number
+    'r66b52b3f786b45ad99f043b124f74ba0': clinician,     // Q2 Clinician Initials
+    'r55f2dc0226b14c81bac120a1634b8476': dtFormatted,   // Q3 Date/Time
+    'r1bce19502d6a4b8a9af7395e8a0f8bbf': news2Form,     // Q4 NEWS2
+    'ra3939a9327a34d77a8c03796b2817574': painForm,      // Q5 Pain
+    'r83b5ba53b455464ebdc61107b47db333': redflagsForm,  // Q6 Red Flags
+    'r91226d9b81eb472f94c063cc69b39661': bloodsForm,    // Q7 Bloods
+    'r9e16a9a75a31440cb00a0a3b2795834e': imagingForm,   // Q8 Imaging
+    'r53de5894450e4d978cbfc98de50a49ee': frailtyForm,   // Q9 Frailty
+    'rf8ab0c37baba4efe8a30378735f7394a': overrideForm   // Q10 Clinician Concern
   };
 
   // Construct the pre-fill URL. Microsoft Forms accepts query parameters appended
@@ -1027,7 +1030,7 @@ function submitToForms() {
   // (forms.office.com/Pages/ResponsePage.aspx?id=...).
   const baseUrl = config.formsUrl.split('?')[0];          // strip any existing params
   const existingParams = config.formsUrl.includes('?')
-    ? config.formsUrl.substring(config.formsUrl.indexOf('?') + 1).split('&').filter(p => !/^r\d+=/.test(p))
+    ? config.formsUrl.substring(config.formsUrl.indexOf('?') + 1).split('&').filter(p => !/^r[0-9a-f]+=/i.test(p))
     : [];
   const newParams = Object.entries(params)
     .map(([k, v]) => `${k}=${encodeURIComponent(v)}`);
@@ -1172,3 +1175,4 @@ updateScores();
 </script>
 </body>
 </html>
+ 
