@@ -940,9 +940,9 @@ function updateScores() {
 // If the Form is built from the v2.1 implementation guide, these are correct.
 const FORM_OPTIONS = {
   news2: {
-    0: 'NEWS2 0\u20134',          // en-dash
-    3: 'NEWS2 5\u20136',
-    6: 'NEWS2 \u22657'             // ≥
+    0: 'NEWS2 0-4',                // ASCII hyphen to match form
+    3: 'NEWS2 5-6',
+    6: 'NEWS2 \u22657'              // ≥
   },
   pain: {
     0: 'Mild / moderate pain',
@@ -951,19 +951,19 @@ const FORM_OPTIONS = {
   },
   bloods: {
     0: 'Mild / Normal',
-    2: 'Moderate derangement (CRP 100\u2013150, WCC 12\u201315, lactate 2\u20134, AKI 1)',
+    2: 'Moderate derangement (CRP 100-150, WCC 12-15, lactate 2-4, AKI 1)',  // hyphens
     5: 'Severe derangement (CRP >150, WCC >15, lactate >4, metabolic acidosis, AKI \u22652, Hb drop >20 g/L)'
   },
   imaging: {
     'definite': 'Definite surgical pathology (free air, perforation, closed-loop, transition point, ischaemia, abscess >3cm, volvulus, strangulated hernia, perforated app/diverticulitis, pancreatitis with necrosis, ischaemic colitis with systemic compromise)',
     'minor': 'Minor / possible surgical pathology (early appendicitis/cholecystitis, uncomplicated diverticulitis, mild SBO, localised free fluid, fat stranding, abscess <3cm, mild pancreatitis)',
     'medical': 'Medical pathology / normal (infective colitis, IBD flare, gastroenteritis, uncomplicated gallstones, constipation, UTI/pyelonephritis, pneumonia)',
-    'pending': 'Imaging pending / not done'
+    'pending': 'Imaging pending/not done'  // no spaces around slash to match form
   },
   frailty: {
-    0: 'CFS 1\u20133',
-    1: 'CFS 4\u20135',
-    2: 'CFS \u22656'
+    0: 'CFS 1-3',                  // hyphens
+    1: 'CFS 4-5',
+    2: 'CFS \u22656'                // ≥
   }
 };
 
@@ -1003,10 +1003,13 @@ function submitToForms() {
   const overrideForm = state.override === true ? 'Yes' : 'No';
 
   // Red flags: multi-select. Forms uses comma-separated values for pre-fill.
-  // If none selected, send "None" (matches the Form's first option).
-  const redflagsForm = state.redflagLabels.length > 0
-    ? state.redflagLabels.join(',')
-    : 'None';
+  // Red flags: Forms multi-select pre-fill expects a JSON array string with
+  // escaped inner quotes, e.g. [\"Item one\",\"Item two\"] or [\"None\"].
+  // The outer URL builder will wrap this entire string in double quotes,
+  // producing the format Forms generates natively: "[\"None\"]"
+  const redflagsForm = '[' + (state.redflagLabels.length > 0
+    ? state.redflagLabels.map(l => '\\"' + l + '\\"').join(',')
+    : '\\"None\\"') + ']';
 
   // Build the parameters object using the form's actual question IDs.
   // These long hashed IDs are specific to THIS form. If you rebuild the form
@@ -1028,12 +1031,15 @@ function submitToForms() {
   // Construct the pre-fill URL. Microsoft Forms accepts query parameters appended
   // to either the short URL (forms.office.com/r/XXXXX) or the long URL
   // (forms.office.com/Pages/ResponsePage.aspx?id=...).
+  // CRITICAL: Forms requires answer values to be wrapped in literal double quotes
+  // when pre-filling — e.g. r123abc="Yes" not r123abc=Yes. Without the quotes,
+  // Forms silently ignores the value and shows an empty field.
   const baseUrl = config.formsUrl.split('?')[0];          // strip any existing params
   const existingParams = config.formsUrl.includes('?')
     ? config.formsUrl.substring(config.formsUrl.indexOf('?') + 1).split('&').filter(p => !/^r[0-9a-f]+=/i.test(p))
     : [];
   const newParams = Object.entries(params)
-    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`);
+    .map(([k, v]) => `${k}=${encodeURIComponent('"' + v + '"')}`);
   const allParams = [...existingParams, ...newParams].join('&');
   const finalUrl = `${baseUrl}?${allParams}`;
 
@@ -1175,4 +1181,3 @@ updateScores();
 </script>
 </body>
 </html>
- 
