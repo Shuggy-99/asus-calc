@@ -517,9 +517,9 @@
           <span class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg></span>
           <span class="checkbox-label">Fresh PR bleeding with instability</span>
         </div>
-        <div class="checkbox-option" onclick="toggleCheck(this)" data-rf="Bilious or faeculent vomiting" role="checkbox" tabindex="0" aria-checked="false">
+        <div class="checkbox-option" onclick="toggleCheck(this)" data-rf="Bilious or feculent vomiting" role="checkbox" tabindex="0" aria-checked="false">
           <span class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-          <span class="checkbox-label">Bilious or faeculent vomiting</span>
+          <span class="checkbox-label">Bilious or feculent vomiting</span>
         </div>
         <div class="checkbox-option" onclick="toggleCheck(this)" data-rf="Suspected bowel obstruction" role="checkbox" tabindex="0" aria-checked="false">
           <span class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg></span>
@@ -744,7 +744,7 @@ const state = {
 // configured individually via the gear icon.
 //
 // Example: const DEFAULT_FORMS_URL = 'https://forms.office.com/r/XXXXXXX';
-const DEFAULT_FORMS_URL = 'https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=3DYvxVrTjUqSkYBOtJZb1RHClHONqXlMnAiKCbG7BG1UMDRNRzdPTzk0MVBSWDhUVFRFWTFSUDZaWS4u';
+const DEFAULT_FORMS_URL = ''https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=3DYvxVrTjUqSkYBOtJZb1RHClHONqXlMnAiKCbG7BG1UMDRNRzdPTzk0MVBSWDhUVFRFWTFSUDZaWS4u'';
 
 // Config (persisted in localStorage, falls back to DEFAULT_FORMS_URL above)
 let config = {
@@ -951,14 +951,16 @@ const FORM_OPTIONS = {
   },
   bloods: {
     0: 'Mild / Normal',
-    2: 'Moderate derangement (CRP 100-150, WCC 12-15, lactate 2-4, AKI 1)',  // hyphens
-    5: 'Severe derangement (CRP >150, WCC >15, lactate >4, metabolic acidosis, AKI \u22652, Hb drop >20 g/L)'
+    // Form uses colon, "AKI Stg. 1" with abbreviation, hyphens
+    2: 'Moderate derangement: CRP 100-150, WCC 12-15, lactate 2-4, AKI Stg. 1',
+    5: 'Severe derangement: CRP >150, WCC >15, lactate >4, metabolic acidosis, AKI Stg. \u22652, Hb drop >20 g/L'
   },
   imaging: {
-    'definite': 'Definite surgical pathology (free air, perforation, closed-loop, transition point, ischaemia, abscess >3cm, volvulus, strangulated hernia, perforated app/diverticulitis, pancreatitis with necrosis, ischaemic colitis with systemic compromise)',
-    'minor': 'Minor / possible surgical pathology (early appendicitis/cholecystitis, uncomplicated diverticulitis, mild SBO, localised free fluid, fat stranding, abscess <3cm, mild pancreatitis)',
-    'medical': 'Medical pathology / normal (infective colitis, IBD flare, gastroenteritis, uncomplicated gallstones, constipation, UTI/pyelonephritis, pneumonia)',
-    'pending': 'Imaging pending/not done'  // no spaces around slash to match form
+    // Form uses colons not parentheses, no spaces around slashes
+    'definite': 'Definite surgical pathology: free air, perforation, closed loop, transition point, ischaemia, abscess >3cm, volvulus, strangulated hernia, perforated appendicitis/diverticulitis, pancreatitis with necrosis, ischaemic colitis with systemic compromise',
+    'minor': 'Minor/possible surgical pathology: early appendicitis/cholecystitis, uncomplicated diverticulitis, mild SBO, localised free fluid, fat stranding, abscess <3cm, mild pancreatitis',
+    'medical': 'Medical pathology/normal: infective colitis, IBD flare, gastroenteritis, uncomplicated gallstones, constipation, UTI/pyelonephritis, pneumonia',
+    'pending': 'Imaging pending/not done'
   },
   frailty: {
     0: 'CFS 1-3',                  // hyphens
