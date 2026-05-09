@@ -1038,15 +1038,27 @@ function submitToForms() {
   const existingParams = config.formsUrl.includes('?')
     ? config.formsUrl.substring(config.formsUrl.indexOf('?') + 1).split('&').filter(p => !/^r[0-9a-f]+=/i.test(p))
     : [];
+  // Defensive: encodeURIComponent should produce %20 for spaces, but iOS Safari
+  // sometimes converts %20 to + in window.open URLs which Forms then treats as
+  // literal +. The .replace ensures spaces stay as %20 throughout the pipeline.
   const newParams = Object.entries(params)
-    .map(([k, v]) => `${k}=${encodeURIComponent('"' + v + '"')}`);
+    .map(([k, v]) => `${k}=${encodeURIComponent('"' + v + '"').replace(/\+/g, '%20')}`);
   const allParams = [...existingParams, ...newParams].join('&');
   const finalUrl = `${baseUrl}?${allParams}`;
 
-  // Show toast then open the form
+  // Show toast then open the form. Using a programmatic anchor click rather
+  // than window.open() because Safari/iOS sometimes normalises URLs in
+  // window.open (converting %20 to +) but preserves them exactly through
+  // anchor element navigation.
   showToast('Opening pre-filled form...', '#009639');
   setTimeout(() => {
-    window.open(finalUrl, '_blank');
+    const a = document.createElement('a');
+    a.href = finalUrl;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }, 300);
 }
 
