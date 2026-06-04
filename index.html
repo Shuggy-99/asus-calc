@@ -268,6 +268,24 @@
   }
   .rf-hint strong { color: var(--text); }
 
+  /* ===== IMAGING DETAIL SUB-SELECTION ===== */
+  .imaging-detail {
+    margin-top: 14px;
+    padding: 12px;
+    background: rgba(0,94,184,0.04);
+    border: 1px solid rgba(0,94,184,0.15);
+    border-radius: 10px;
+  }
+  .imaging-detail-prompt {
+    font-size: 13px; font-weight: 700; color: var(--nhs-blue);
+    margin-bottom: 10px;
+  }
+  .imaging-detail-prompt::before {
+    content: "\21B3"; margin-right: 6px; opacity: 0.7;
+  }
+  .imaging-detail .option { padding: 10px 12px; margin-bottom: 6px; }
+  .imaging-detail .option-label { font-size: 14px; }
+
   /* ===== RESULT PANEL ===== */
   .result-panel {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
@@ -513,6 +531,10 @@
     <div class="section-body">
       <div class="rf-hint">Scoring: <strong>None = 0</strong> &nbsp;|&nbsp; <strong>One = +2</strong> &nbsp;|&nbsp; <strong>Two or more = +5</strong></div>
       <div class="checkbox-group" data-group="redflags" id="rfGroup">
+        <div class="checkbox-option" onclick="toggleCheck(this)" data-rf="None" data-none="true" role="checkbox" tabindex="0" aria-checked="false">
+          <span class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+          <span class="checkbox-label">None</span>
+        </div>
         <div class="checkbox-option" onclick="toggleCheck(this)" data-rf="Fresh PR bleeding with instability" role="checkbox" tabindex="0" aria-checked="false">
           <span class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg></span>
           <span class="checkbox-label">Fresh PR bleeding with instability</span>
@@ -608,6 +630,11 @@
           <span class="option-content"><span class="option-label">Imaging pending / not done</span></span>
           <span class="option-points">0</span>
         </label>
+      </div>
+      <!-- Imaging detail sub-selection (appears when Definite or Minor picked) -->
+      <div class="imaging-detail" id="imagingDetail" style="display:none;">
+        <div class="imaging-detail-prompt" id="imagingDetailLabel">Specify the finding</div>
+        <div class="option-group" id="imagingDetailOptions"></div>
       </div>
     </div>
   </div>
@@ -729,7 +756,7 @@ const state = {
   news2: null, news2Label: null,
   pain: null, painLabel: null,
   bloods: null, bloodsLabel: null,
-  imaging: null, imagingLabel: null, imagingType: null,
+  imaging: null, imagingLabel: null, imagingType: null, imagingDetail: null,
   frailty: null, frailtyLabel: null,
   redflags: 0, redflagLabels: [],
   override: null, overrideLabel: null
@@ -745,6 +772,14 @@ const state = {
 //
 // Example: const DEFAULT_FORMS_URL = 'https://forms.office.com/r/XXXXXXX';
 const DEFAULT_FORMS_URL = 'https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=3DYvxVrTjUqSkYBOtJZb1RHClHONqXlMnAiKCbG7BG1UMDRNRzdPTzk0MVBSWDhUVFRFWTFSUDZaWS4u';
+
+// Question ID for the new "Specific imaging finding" question (Q11).
+// After adding this question to your Microsoft Form as Short Text, do a test
+// submission and copy its hashed ID from the Power Automate run history
+// (Get response details -> Outputs -> body). Paste that ID between the quotes.
+// Until this is set, the imaging detail simply won't be sent to the form
+// (everything else still works normally).
+const IMAGING_DETAIL_QUESTION_ID = '';
 
 // Config (persisted in localStorage, falls back to DEFAULT_FORMS_URL above)
 let config = {
@@ -777,17 +812,28 @@ function toggleSection(header) {
 // =============================================
 function selectOption(el, group, value, label, subtype) {
   const parent = el.closest('.section-body');
-  parent.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+  // Only clear selection within the main option group, not the imaging detail sub-group
+  const mainGroup = el.closest('.option-group');
+  mainGroup.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
   state[group] = value;
   state[group + 'Label'] = label;
-  if (group === 'imaging') state.imagingType = subtype;
+  if (group === 'imaging') {
+    state.imagingType = subtype;
+    showImagingDetail(subtype);
+  }
 
   // Mark section as done
   const numEl = document.getElementById('num-' + group);
   if (numEl) numEl.classList.add('done');
 
   updateScores();
+
+  // If imaging Definite/Minor picked, don't auto-advance — user must pick a
+  // specific finding from the sub-list that just appeared.
+  if (group === 'imaging' && (subtype === 'definite' || subtype === 'minor')) {
+    return;
+  }
 
   // Auto-advance: collapse current section and open next, but don't auto-scroll.
   // Scrolling the user's view automatically on mobile feels jarring; the user
@@ -809,17 +855,105 @@ function selectOption(el, group, value, label, subtype) {
 }
 
 // =============================================
+// IMAGING DETAIL SUB-SELECTION
+// =============================================
+const IMAGING_DETAILS = {
+  definite: [
+    'Free air', 'Perforation', 'Closed-loop obstruction', 'Transition point',
+    'Bowel ischaemia', 'Abscess >3cm', 'Volvulus', 'Strangulated hernia',
+    'Perforated appendicitis/diverticulitis', 'Severe pancreatitis with necrosis',
+    'Ischaemic colitis with systemic compromise', 'Other definite finding'
+  ],
+  minor: [
+    'Early appendicitis', 'Early cholecystitis', 'Uncomplicated diverticulitis',
+    'Mild SBO without transition', 'Localised free fluid', 'Fat stranding',
+    'Abscess <3cm', 'Mild pancreatitis', 'Other minor finding'
+  ]
+};
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function showImagingDetail(type) {
+  const container = document.getElementById('imagingDetail');
+  const optsContainer = document.getElementById('imagingDetailOptions');
+  const labelEl = document.getElementById('imagingDetailLabel');
+
+  if (type === 'definite' || type === 'minor') {
+    const list = IMAGING_DETAILS[type];
+    labelEl.textContent = type === 'definite'
+      ? 'Specify the definite surgical finding'
+      : 'Specify the minor/possible finding';
+    optsContainer.innerHTML = list.map(item =>
+      `<label class="option" data-val="${escapeHtml(item)}" onclick="selectImagingDetail(this)">
+        <input type="radio" name="imagingDetail"><span class="radio-dot"></span>
+        <span class="option-content"><span class="option-label">${escapeHtml(item)}</span></span>
+      </label>`
+    ).join('');
+    container.style.display = 'block';
+    state.imagingDetail = null; // reset until they choose a specific finding
+  } else {
+    container.style.display = 'none';
+    optsContainer.innerHTML = '';
+    state.imagingDetail = null;
+  }
+  updateScores();
+}
+
+function selectImagingDetail(el) {
+  const optsContainer = document.getElementById('imagingDetailOptions');
+  optsContainer.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  const input = el.querySelector('input');
+  if (input) input.checked = true;
+  state.imagingDetail = el.dataset.val;
+  updateScores();
+
+  // Now that a detail is chosen, auto-advance to the next section (Frailty)
+  const section = el.closest('.section');
+  const next = section.nextElementSibling;
+  if (next && next.classList.contains('section')) {
+    setTimeout(() => {
+      section.classList.remove('open');
+      next.classList.add('open');
+    }, 250);
+  }
+}
+
+// =============================================
 // TOGGLE CHECKBOX
 // =============================================
 function toggleCheck(el) {
-  el.classList.toggle('checked');
-  el.setAttribute('aria-checked', el.classList.contains('checked') ? 'true' : 'false');
-  // Red flags only - override is now a radio handled by selectOption
   const group = el.closest('.checkbox-group');
-  const checked = group.querySelectorAll('.checked');
-  state.redflags = checked.length;
-  state.redflagLabels = Array.from(checked).map(c => c.dataset.rf);
-  // Mark section done if user has interacted
+  const isNone = el.dataset.none === 'true';
+
+  el.classList.toggle('checked');
+  const nowChecked = el.classList.contains('checked');
+  el.setAttribute('aria-checked', nowChecked ? 'true' : 'false');
+
+  if (isNone && nowChecked) {
+    // Ticking "None" clears all actual red flags
+    group.querySelectorAll('.checkbox-option').forEach(opt => {
+      if (opt.dataset.none !== 'true') {
+        opt.classList.remove('checked');
+        opt.setAttribute('aria-checked', 'false');
+      }
+    });
+  } else if (!isNone && nowChecked) {
+    // Ticking any actual flag clears "None"
+    const noneOpt = group.querySelector('[data-none="true"]');
+    if (noneOpt) {
+      noneOpt.classList.remove('checked');
+      noneOpt.setAttribute('aria-checked', 'false');
+    }
+  }
+
+  // Count only actual red flags (exclude "None") for scoring
+  const checkedFlags = group.querySelectorAll('.checked:not([data-none="true"])');
+  state.redflags = checkedFlags.length;
+  state.redflagLabels = Array.from(checkedFlags).map(c => c.dataset.rf);
+
   const numEl = document.getElementById('num-redflags');
   if (numEl) numEl.classList.add('done');
   updateScores();
@@ -991,6 +1125,12 @@ function submitToForms() {
     return;
   }
 
+  // If imaging is Definite or Minor, require a specific finding to be chosen
+  if ((state.imagingType === 'definite' || state.imagingType === 'minor') && !state.imagingDetail) {
+    showToast('Select the specific imaging finding', '#E65100');
+    return;
+  }
+
   // Format the datetime as DD/MM/YYYY HH:MM for the Form free-text field
   const dt = new Date(dtRaw);
   const pad = n => String(n).padStart(2, '0');
@@ -1029,6 +1169,12 @@ function submitToForms() {
     'r53de5894450e4d978cbfc98de50a49ee': frailtyForm,   // Q9 Frailty
     'rf8ab0c37baba4efe8a30378735f7394a': overrideForm   // Q10 Clinician Concern
   };
+
+  // Q11 (optional) - Specific imaging finding. Only sent if a question ID has
+  // been configured and a detail was actually selected.
+  if (IMAGING_DETAIL_QUESTION_ID && state.imagingDetail) {
+    params[IMAGING_DETAIL_QUESTION_ID] = state.imagingDetail;
+  }
 
   // Construct the pre-fill URL. Microsoft Forms accepts query parameters appended
   // to either the short URL (forms.office.com/r/XXXXX) or the long URL
@@ -1097,7 +1243,7 @@ function copyResult() {
     `Pain/Peritonism: ${state.painLabel || 'N/A'} (${state.pain !== null ? state.pain : '-'})`,
     `GI Red Flags: ${state.redflagLabels.length ? state.redflagLabels.join('; ') : 'None'} (${rfScore})`,
     `Blood Tests: ${state.bloodsLabel || 'N/A'} (${state.bloods !== null ? state.bloods : '-'})`,
-    `Imaging: ${state.imagingLabel || 'N/A'} (${state.imaging !== null ? state.imaging : '-'})`,
+    `Imaging: ${state.imagingLabel || 'N/A'} (${state.imaging !== null ? state.imaging : '-'})${state.imagingDetail ? ' \u2014 ' + state.imagingDetail : ''}`,
     `Frailty: ${state.frailtyLabel || 'N/A'} (${state.frailty !== null ? state.frailty : '-'})`,
     `Clinician Override: ${state.override === true ? 'Yes' : 'No'}`,
     ``,
@@ -1119,10 +1265,16 @@ function resetForm() {
   state.news2 = null; state.news2Label = null;
   state.pain = null; state.painLabel = null;
   state.bloods = null; state.bloodsLabel = null;
-  state.imaging = null; state.imagingLabel = null; state.imagingType = null;
+  state.imaging = null; state.imagingLabel = null; state.imagingType = null; state.imagingDetail = null;
   state.frailty = null; state.frailtyLabel = null;
   state.redflags = 0; state.redflagLabels = [];
   state.override = null; state.overrideLabel = null;
+
+  // Hide and clear the imaging detail sub-selection
+  const imgDetail = document.getElementById('imagingDetail');
+  if (imgDetail) imgDetail.style.display = 'none';
+  const imgDetailOpts = document.getElementById('imagingDetailOptions');
+  if (imgDetailOpts) imgDetailOpts.innerHTML = '';
 
   document.querySelectorAll('.option.selected').forEach(o => o.classList.remove('selected'));
   document.querySelectorAll('.checkbox-option.checked').forEach(o => {
