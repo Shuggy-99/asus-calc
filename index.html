@@ -80,6 +80,10 @@
   }
   .header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 2px; }
   .header p { font-size: 12px; opacity: 0.8; font-weight: 400; }
+  .header p.header-credit {
+    font-size: 10px; opacity: 0.65; font-weight: 400;
+    margin-top: 4px; letter-spacing: 0.2px;
+  }
 
   .container { max-width: 640px; margin: 0 auto; padding: 12px 12px 160px; }
 
@@ -426,6 +430,7 @@
   @media (max-width: 380px) {
     .header h1 { font-size: 17px; }
     .header p { font-size: 11px; }
+    .header p.header-credit { font-size: 9px; }
     .option-label { font-size: 13px; }
     .result-score { font-size: 28px; }
     .result-priority { font-size: 13px; }
@@ -441,6 +446,7 @@
     <div class="header-badge">NHS &bull; UHNM Pilot Study</div>
     <h1>ASUS-UHNM Calculator</h1>
     <p>A&E to Surgical Urgency Score &mdash; Acute General Surgery Triage</p>
+    <p class="header-credit">Score &amp; tool &copy; 2026 &middot; Vasileios Kalatzis &amp; Shadman Ahmed</p>
     <div class="settings-btn" onclick="openConfig()" title="Configure Forms link">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
     </div>
